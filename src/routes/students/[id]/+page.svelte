@@ -21,6 +21,7 @@
 	let isEditing = $state(false);
 	let isSaving = $state(false);
 	let activeTab = $state('info'); // Define the missing activeTab variable
+	let showDeleteModal = $state(false); // State for delete confirmation modal
 
 	// Create mutable copy for editing
 	let editedStudent = $state<Student | null>(null);
@@ -105,15 +106,20 @@
 		editedStudent.courses = editedStudent.courses.filter((_, i) => i !== index);
 	}
 
+	function confirmDeleteStudent() {
+		showDeleteModal = true;
+	}
+
+	function cancelDelete() {
+		showDeleteModal = false;
+	}
+
 	async function deleteStudent() {
 		if (!studentData) return;
 
-		if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
-			return;
-		}
-
 		try {
 			isSaving = true;
+			showDeleteModal = false; // Hide modal
 
 			const { error: deleteError } = await supabase
 				.from('students')
@@ -187,11 +193,11 @@
 			</div>
 		</div>
 	{:else}
-		<!-- Back button and header -->
-		<div class="mb-6 flex items-center justify-between">
-			<div class="flex items-center">
-				<a href="/students" class="mr-4 text-indigo-600 hover:text-indigo-900">
-					<svg class="inline h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<!-- Back button and header - Make responsive -->
+		<div class="mb-6 flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+			<div class="flex flex-col space-y-2 md:flex-row md:items-center md:space-x-4 md:space-y-0">
+				<a href="/students" class="inline-flex items-center text-indigo-600 hover:text-indigo-900">
+					<svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -201,20 +207,20 @@
 					</svg>
 					Back to Students
 				</a>
-				<h1 class="text-3xl font-bold text-gray-800">{studentData.name}</h1>
+				<h1 class="text-2xl font-bold text-gray-800 md:text-3xl">{studentData.name}</h1>
 			</div>
 
-			<div class="flex space-x-3">
+			<div class="flex flex-wrap gap-2">
 				{#if isEditing}
 					<button
-						class="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-50"
+						class="flex-1 rounded-md bg-indigo-600 px-4 py-2 text-center text-white hover:bg-indigo-700 disabled:opacity-50 md:flex-none"
 						onclick={saveChanges}
 						disabled={isSaving}
 					>
 						{isSaving ? 'Saving...' : 'Save Changes'}
 					</button>
 					<button
-						class="rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
+						class="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-center text-gray-700 hover:bg-gray-50 md:flex-none"
 						onclick={cancelEditing}
 						disabled={isSaving}
 					>
@@ -222,14 +228,14 @@
 					</button>
 				{:else}
 					<button
-						class="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+						class="flex-1 rounded-md bg-indigo-600 px-4 py-2 text-center text-white hover:bg-indigo-700 md:flex-none"
 						onclick={startEditing}
 					>
 						Edit Student
 					</button>
 					<button
-						class="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-						onclick={deleteStudent}
+						class="flex-1 rounded-md bg-red-600 px-4 py-2 text-center text-white hover:bg-red-700 md:flex-none"
+						onclick={confirmDeleteStudent} 
 					>
 						Delete Student
 					</button>
@@ -237,17 +243,17 @@
 			</div>
 		</div>
 
-		<!-- Tab navigation -->
-		<div class="mb-4 border-b border-gray-200">
+		<!-- Tab navigation - Make responsive -->
+		<div class="mb-4 border-b border-gray-200 overflow-x-auto">
 			<nav class="-mb-px flex" aria-label="Tabs">
 				<button
-					class={`border-b-2 px-6 py-4 ${activeTab === 'info' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}
+					class={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium sm:px-6 sm:py-4 ${activeTab === 'info' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}
 					onclick={() => setActiveTab('info')}
 				>
 					Student Information
 				</button>
 				<button
-					class={`border-b-2 px-6 py-4 ${activeTab === 'courses' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}
+					class={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium sm:px-6 sm:py-4 ${activeTab === 'courses' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}
 					onclick={() => setActiveTab('courses')}
 				>
 					Courses
@@ -259,7 +265,7 @@
 		{#if activeTab === 'info'}
 			<div class="overflow-hidden bg-white shadow sm:rounded-lg">
 				<div class="px-4 py-5 sm:px-6">
-					<h3 class="text-lg leading-6 font-medium text-gray-900">Student Information</h3>
+					<h3 class="text-lg font-medium leading-6 text-gray-900">Student Information</h3>
 					<p class="mt-1 max-w-2xl text-sm text-gray-500">Personal details</p>
 				</div>
 
@@ -310,7 +316,7 @@
 								{:else}
 									<a
 										href="mailto:{studentData.email}"
-										class="text-indigo-600 hover:text-indigo-900"
+										class="text-indigo-600 hover:text-indigo-900 break-all"
 									>
 										{studentData.email}
 									</a>
@@ -356,7 +362,7 @@
 		{:else if activeTab === 'courses'}
 			<div class="overflow-hidden bg-white shadow sm:rounded-lg">
 				<div class="px-4 py-5 sm:px-6">
-					<h3 class="text-lg leading-6 font-medium text-gray-900">Enrolled Courses</h3>
+					<h3 class="text-lg font-medium leading-6 text-gray-900">Enrolled Courses</h3>
 					<p class="mt-1 max-w-2xl text-sm text-gray-500">
 						Courses this student is currently taking
 					</p>
@@ -366,15 +372,15 @@
 					<div class="px-4 py-5 sm:p-6">
 						{#if isEditing && editedStudent}
 							<div class="mb-4">
-								<div class="mb-2 flex items-center justify-between">
+								<div class="mb-2 flex flex-wrap items-center justify-between gap-2">
 									<h4 class="text-sm font-medium text-gray-700">Add or remove courses</h4>
 									<button
 										type="button"
 										onclick={addCourse}
-										class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+										class="inline-flex items-center rounded-md bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
 									>
 										<svg
-											class="mr-1 -ml-0.5 h-4 w-4"
+											class="mr-1 h-4 w-4"
 											fill="none"
 											stroke="currentColor"
 											viewBox="0 0 24 24"
@@ -391,7 +397,7 @@
 								</div>
 
 								{#if editedStudent.courses.length === 0}
-									<p class="text-sm text-gray-500 italic">No courses assigned to this student</p>
+									<p class="text-sm italic text-gray-500">No courses assigned to this student</p>
 								{:else}
 									<div class="space-y-2">
 										{#each editedStudent.courses as course, i}
@@ -402,10 +408,10 @@
 												<button
 													type="button"
 													onclick={() => removeCourse(i)}
-													class="text-red-600 hover:text-red-800"
+													class="ml-2 rounded p-1 text-red-600 hover:bg-red-50 hover:text-red-800"
 												>
 													<svg
-														class="h-4 w-4"
+														class="h-5 w-5"
 														fill="none"
 														stroke="currentColor"
 														viewBox="0 0 24 24"
@@ -424,9 +430,9 @@
 								{/if}
 							</div>
 						{:else if studentData.courses.length === 0}
-							<p class="text-sm text-gray-500 italic">No courses assigned to this student</p>
+							<p class="text-sm italic text-gray-500">No courses assigned to this student</p>
 						{:else}
-							<ul class="space-y-3">
+							<ul class="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
 								{#each studentData.courses as course}
 									<li class="rounded-md bg-gray-50 px-4 py-3">
 										<h4 class="font-medium text-gray-900">{course}</h4>
@@ -438,5 +444,53 @@
 				</div>
 			</div>
 		{/if}
+	{/if}
+
+	<!-- Delete Confirmation Modal -->
+	{#if showDeleteModal}
+		<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-500 bg-opacity-75 p-4">
+			<div class="relative w-full max-w-md rounded-lg bg-white shadow-xl sm:mx-auto">
+				<div class="p-6">
+					<!-- Modal Header -->
+					<div class="mb-4 flex items-start">
+						<div class="mr-3 flex-shrink-0 rounded-full bg-red-100 p-2">
+							<svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+								/>
+							</svg>
+						</div>
+						<div>
+							<h3 class="text-lg font-medium text-gray-900">Delete Student</h3>
+							<p class="mt-1 text-sm text-gray-500">
+								Are you sure you want to delete {studentData.name}? This action cannot be undone.
+							</p>
+						</div>
+					</div>
+
+					<!-- Modal Actions -->
+					<div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+						<button
+							type="button"
+							class="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto sm:text-sm"
+							onclick={cancelDelete}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							class="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:w-auto sm:text-sm"
+							onclick={deleteStudent}
+							disabled={isSaving}
+						>
+							{isSaving ? 'Deleting...' : 'Delete Student'}
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
 	{/if}
 </div>

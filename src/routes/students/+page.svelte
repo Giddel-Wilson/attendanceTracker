@@ -309,25 +309,39 @@
 		document.body.removeChild(link);
 	}
 
-	// Add delete student function
-	async function deleteStudent(id: number): Promise<void> {
-		if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
-			return;
-		}
+	// Add state for delete confirmation modal
+	let showDeleteModal = $state(false);
+	let studentToDelete = $state<Student | null>(null);
+
+	// Function to open delete confirmation modal
+	function confirmDeleteStudent(student: Student): void {
+		studentToDelete = student;
+		showDeleteModal = true;
+	}
+
+	// Function to close modal without deleting
+	function cancelDelete(): void {
+		showDeleteModal = false;
+		studentToDelete = null;
+	}
+
+	// Modified delete student function - no longer needs confirmation check
+	async function deleteStudent(): Promise<void> {
+		if (!studentToDelete) return;
 
 		try {
 			isLoading = true;
 
 			// Delete the student from Supabase
-			const { error } = await supabase.from('students').delete().eq('id', id);
+			const { error } = await supabase.from('students').delete().eq('id', studentToDelete.id);
 
 			if (error) {
 				throw new Error(`Failed to delete student: ${error.message}`);
 			}
 
 			// Remove the student from the local lists
-			students = students.filter((s) => s.id !== id);
-			filteredStudents = filteredStudents.filter((s) => s.id !== id);
+			students = students.filter((s) => s.id !== studentToDelete.id);
+			filteredStudents = filteredStudents.filter((s) => s.id !== studentToDelete.id);
 
 			// Update pagination
 			updateTotalPages();
@@ -335,6 +349,10 @@
 
 			// Success notification
 			alert('Student deleted successfully');
+
+			// Close the modal
+			showDeleteModal = false;
+			studentToDelete = null;
 		} catch (err) {
 			console.error('Error deleting student:', err);
 			alert(err instanceof Error ? err.message : 'Failed to delete student');
@@ -550,83 +568,112 @@
 			</p>
 		</div>
 	{:else}
-		<div class="ring-opacity-5 overflow-hidden shadow ring-1 ring-black sm:rounded-lg">
-			<table class="min-w-full divide-y divide-gray-300">
-				<thead class="bg-gray-50">
-					<tr>
-						<th
-							scope="col"
-							class="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-							>Name</th
-						>
-						<th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">ID</th
-						>
-						<th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-							>Email</th
-						>
-						<th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-							>Courses</th
-						>
-						<th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-6">
-							<span class="sr-only">Actions</span>
-						</th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-gray-200 bg-white">
-					{#each currentPageStudents as student}
+		<!-- Responsive table container with controlled overflow -->
+		<div class="mt-6 rounded-lg border border-gray-200 bg-white shadow overflow-hidden">
+			<!-- Add horizontal scrolling only -->
+			<div class="overflow-x-auto">
+				<table class="w-full divide-y divide-gray-300">
+					<thead class="bg-gray-50">
 						<tr>
-							<td class="py-4 pr-3 pl-4 text-sm whitespace-nowrap sm:pl-6">
-								<div class="flex items-center">
-									<div class="h-10 w-10 flex-shrink-0">
-										<div
-											class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-800"
-										>
-											{student.name
+							<th
+								scope="col"
+								class="py-3.5 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sm:pl-6"
+								>Name</th
+							>
+							<th
+								scope="col"
+								class="hidden px-3 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sm:table-cell"
+								>ID</th
+							>
+							<th
+								scope="col"
+								class="hidden px-3 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500 md:table-cell"
+								>Email</th
+							>
+							<th
+								scope="col"
+								class="hidden px-3 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500 lg:table-cell"
+								>Courses</th
+							>
+							<th
+								scope="col"
+								class="px-3 py-3.5 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+								>Actions</th
+							>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200 bg-white">
+						{#each currentPageStudents as student}
+							<tr class="hover:bg-gray-50">
+								<td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+									<div class="flex items-center">
+										<div class="h-8 w-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center">
+											<span class="text-sm font-medium text-indigo-800">{student.name
 												.split(' ')
 												.map((part) => part[0])
-												.join('')}
+												.join('')
+												.substring(0, 2)}</span>
+										</div>
+										<div class="ml-3">
+											<div class="font-medium text-gray-900">{student.name}</div>
+											<!-- Show student ID on mobile only -->
+											<div class="text-xs text-gray-500 sm:hidden">ID: {student.studentId}</div>
 										</div>
 									</div>
-									<div class="ml-4">
-										<div class="font-medium text-gray-900">{student.name}</div>
+								</td>
+								<td class="hidden whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
+									{student.studentId}
+								</td>
+								<td class="hidden whitespace-nowrap px-3 py-4 text-sm text-gray-500 md:table-cell">
+									<span class="truncate max-w-[150px] inline-block">{student.email}</span>
+								</td>
+								<td class="hidden whitespace-nowrap px-3 py-4 text-sm text-gray-500 lg:table-cell">
+									<div class="flex flex-wrap gap-1">
+										{#each student.courses || [] as course}
+											<span class="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
+												{course}
+											</span>
+										{/each}
 									</div>
-								</div>
-							</td>
-							<td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-								{student.studentId}
-							</td>
-							<td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-								{student.email}
-							</td>
-							<td class="px-3 py-4 text-sm text-gray-500">
-								<div class="flex flex-wrap gap-1">
-									{#each student.courses as course}
-										<span
-											class="inline-flex rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-800"
-											>{course}</span
+								</td>
+								<td class="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
+									<div class="flex justify-end space-x-2">
+										<a
+											href={`/students/${student.id}`}
+											class="text-indigo-600 hover:text-indigo-900"
 										>
-									{/each}
-								</div>
-							</td>
-							<td
-								class="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6"
-							>
-								<a href="/students/{student.id}" class="text-indigo-600 hover:text-indigo-900"
-									>View</a
-								>
-								<span class="mx-2 text-gray-300">|</span>
-								<button
-									class="text-red-600 hover:text-red-900"
-									onclick={() => deleteStudent(student.id)}
-									type="button"
-								>
-									Delete
-								</button>
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+											<span class="sr-only">View</span>
+											<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+											</svg>
+										</a>
+										<button
+											class="text-red-600 hover:text-red-900"
+											onclick={() => confirmDeleteStudent(student)}
+											type="button"
+											aria-label="Delete student"
+										>
+											<span class="sr-only">Delete</span>
+											<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+											</svg>
+										</button>
+									</div>
+								</td>
+							</tr>
+						{/each}
+						
+						<!-- Empty state when no students match filters -->
+						{#if currentPageStudents.length === 0}
+							<tr>
+								<td colspan="5" class="px-3 py-8 text-center text-sm text-gray-500">
+									No students found matching your filters.
+								</td>
+							</tr>
+						{/if}
+					</tbody>
+				</table>
+			</div>
 		</div>
 
 		<!-- Pagination -->
@@ -682,5 +729,53 @@
 				</div>
 			</nav>
 		{/if}
+	{/if}
+
+	<!-- Add delete confirmation modal at the end of the component, before closing div -->
+	{#if showDeleteModal && studentToDelete}
+		<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-500 bg-opacity-75 p-4">
+			<div class="relative w-full max-w-md rounded-lg bg-white shadow-xl sm:mx-auto">
+				<div class="p-6">
+					<!-- Modal Header -->
+					<div class="mb-4 flex items-start">
+						<div class="mr-3 flex-shrink-0 rounded-full bg-red-100 p-2">
+							<svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+								/>
+							</svg>
+						</div>
+						<div>
+							<h3 class="text-lg font-medium text-gray-900">Delete Student</h3>
+							<p class="mt-1 text-sm text-gray-500">
+								Are you sure you want to delete {studentToDelete.name}? This action cannot be undone.
+							</p>
+						</div>
+					</div>
+
+					<!-- Modal Actions -->
+					<div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+						<button
+							type="button"
+							class="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto sm:text-sm"
+							onclick={cancelDelete}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							class="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:w-auto sm:text-sm"
+							onclick={deleteStudent}
+							disabled={isLoading}
+						>
+							{isLoading ? 'Deleting...' : 'Delete Student'}
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
 	{/if}
 </div>

@@ -402,98 +402,98 @@
 
 <!-- Course Selection Modal - Show all courses but make completed ones inactive -->
 {#if showTakeCourseModal}
-	<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
-		<div class="relative mx-auto w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
-			<div class="mb-4 flex items-center justify-between">
-				<h3 class="text-xl font-medium text-gray-900">Select Course for Attendance</h3>
-				<button
-					type="button"
-					class="text-gray-400 hover:text-gray-500"
-					onclick={closeTakeCourseModal}
-					aria-label="Close"
-				>
-					<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M6 18L18 6M6 6l12 12"
-						/>
-					</svg>
-				</button>
-			</div>
-
-			{#if courses.length === 0}
-				<div class="py-8 text-center">
-					<p class="text-gray-500">No courses available. Add courses first!</p>
+	<div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50">
+		<div class="flex min-h-screen items-center justify-center px-2 py-4 sm:p-0">
+			<div class="relative w-full max-w-sm transform overflow-hidden rounded-lg bg-white px-3 py-4 shadow-xl transition-all sm:max-w-md sm:px-4 sm:py-5">
+				<div class="mb-3 sm:mb-4 flex items-center justify-between">
+					<h3 class="text-base sm:text-lg font-medium leading-6 text-gray-900">Select Course for Attendance</h3>
+					<button
+						type="button"
+						class="rounded-full sm:rounded-md p-1.5 sm:p-1 bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+						onclick={closeTakeCourseModal}
+						aria-label="Close"
+					>
+						<span class="sr-only">Close</span>
+						<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
 				</div>
-			{:else}
-				<div class="mt-4 space-y-3">
-					{#each courses as course (course.id)}
-						<!-- Use different styling for completed vs active courses -->
-						<div
-							class="flex w-full items-center justify-between rounded-lg border px-4 py-3
-                     {course.status === 'completed'
-								? 'cursor-not-allowed bg-gray-100 opacity-70'
-								: 'cursor-pointer transition-colors hover:bg-gray-50'}"
-						>
-							<div class="flex flex-col items-start">
-								<div class="flex items-center">
-									<span
-										class="text-sm font-bold {course.status === 'completed'
-											? 'text-gray-500'
-											: 'text-gray-900'}">{course.code}</span
-									>
-									{#if course.status === 'completed'}
+
+				<div class="mt-2 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto py-2 -mx-3 px-3 sm:mx-0 sm:px-0">
+					{#if courses.length === 0}
+						<div class="py-8 text-center">
+							<p class="text-gray-500">No courses available. Add courses first!</p>
+						</div>
+					{:else}
+						<div class="space-y-2">
+							{#each courses as course (course.id)}
+								<div
+									class="flex items-center justify-between rounded-lg border p-2.5 sm:p-3
+									{course.status === 'completed'
+										? 'cursor-not-allowed bg-gray-100 opacity-70'
+										: 'cursor-pointer transition-colors hover:bg-gray-50'}"
+								>
+									<div class="flex-1 min-w-0 pr-1 sm:pr-2">
+										<div class="flex flex-wrap items-center gap-1 sm:gap-2">
+											<span
+												class="text-xs sm:text-sm font-bold truncate {course.status === 'completed'
+													? 'text-gray-500'
+													: 'text-gray-900'}">{course.code}</span
+											>
+											{#if course.status === 'completed'}
+												<span
+													class="inline-flex items-center rounded-full bg-gray-100 px-1.5 sm:px-2 py-0.5 text-xs font-medium text-gray-800"
+												>
+													Completed
+												</span>
+											{/if}
+										</div>
 										<span
-											class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800"
+											class="block truncate text-xs sm:text-sm {course.status === 'completed'
+												? 'text-gray-400'
+												: 'text-gray-600'}">{course.name}</span
 										>
-											Completed
-										</span>
+									</div>
+
+									{#if course.status !== 'completed'}
+										<button
+											onclick={() => selectCourseForAttendance(course.id!)}
+											class="flex-shrink-0 rounded-md p-2.5 sm:p-2 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800"
+											aria-label="Select course {course.code}"
+										>
+											<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M9 5l7 7-7 7"
+												/>
+											</svg>
+										</button>
+									{:else}
+										<div class="flex-shrink-0 p-2">
+											<svg
+												class="h-5 w-5 text-gray-300"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+												/>
+											</svg>
+										</div>
 									{/if}
 								</div>
-								<span
-									class="text-sm {course.status === 'completed'
-										? 'text-gray-400'
-										: 'text-gray-600'}">{course.name}</span
-								>
-							</div>
-
-							<!-- Only active courses should have click functionality -->
-							{#if course.status !== 'completed'}
-								<button
-									onclick={() => selectCourseForAttendance(course.id!)}
-									class="text-indigo-600 hover:text-indigo-800"
-									aria-label="Select course {course.code}"
-								>
-									<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M9 5l7 7-7 7"
-										/>
-									</svg>
-								</button>
-							{:else}
-								<svg
-									class="h-5 w-5 text-gray-300"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-									/>
-								</svg>
-							{/if}
+							{/each}
 						</div>
-					{/each}
+					{/if}
 				</div>
-			{/if}
+			</div>
 		</div>
 	</div>
 {/if}
