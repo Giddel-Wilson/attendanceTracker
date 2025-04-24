@@ -115,33 +115,88 @@
 		}
 	}
 
+	// Additional state for error modal
+	let showErrorModal = $state(false);
+	let errorMessage = $state('');
+
+	// Toast notification state
+	let showToast = $state(false);
+	let toastMessage = $state('');
+	let toastType = $state<'success' | 'error'>('success');
+
+	// Function to show toast notification
+	function showToastNotification(message: string, type: 'success' | 'error' = 'success') {
+		toastMessage = message;
+		toastType = type;
+		showToast = true;
+
+		// Auto-hide toast after 3 seconds
+		setTimeout(() => {
+			showToast = false;
+		}, 3000);
+	}
+
 	// Add new course
 	async function addNewCourse() {
 		try {
 			// Validate required fields
 			if (!newCourse.name || !newCourse.code) {
-				alert('Please fill in all required fields.');
+				// Show error modal instead of alert
+				errorMessage = 'Please fill in all required fields.';
+				showErrorModal = true;
 				return;
 			}
 
 			isLoading = true;
 
+			// Create a minimal course object with only fields that are known to exist in the database
+			// Based on error messages, nextSession doesn't exist in the DB schema
+			const courseToCreate = {
+				name: newCourse.name,
+				code: newCourse.code,
+				students: newCourse.students || 0,
+				attendance: newCourse.attendance || 0,
+				semester: newCourse.semester,
+				status: newCourse.status,
+				description: newCourse.description || '',
+				// Only include instructor if it's not empty
+				...(newCourse.instructor ? { instructor: newCourse.instructor } : {}),
+				// Only include credits if it's defined
+				...(newCourse.credits ? { credits: newCourse.credits } : {})
+				// Removing all other fields that might not exist
+				// nextSession: newCourse.nextSession,
+				// schedule: newCourse.schedule,
+				// location: newCourse.location,
+				// startDate: newCourse.startDate,
+				// endDate: newCourse.endDate
+			};
+
+			console.log('Creating course with data:', courseToCreate);
+
 			// Create the new course in Supabase
-			const course = await createCourse(newCourse);
+			const course = await createCourse(courseToCreate);
 
 			// Update local state with the new course
 			courses = [course, ...courses];
 			applyFilters();
 
-			// Close form and show success message
+			// Close form and show success toast instead of alert
 			showNewCourseForm = false;
-			alert('Course added successfully!');
+			showToastNotification('Course added successfully!');
 		} catch (error) {
 			console.error('Error adding course:', error);
-			alert('Failed to add course. Please try again.');
+			// Show error modal instead of alert
+			errorMessage = error.message || 'Failed to add course. Please try again.';
+			showErrorModal = true;
 		} finally {
 			isLoading = false;
 		}
+	}
+
+	// Close error modal
+	function closeErrorModal() {
+		showErrorModal = false;
+		errorMessage = '';
 	}
 
 	// Delete course functions
@@ -162,10 +217,11 @@
 
 				showDeleteConfirm = false;
 				courseToDelete = null;
-				alert('Course deleted successfully!');
+				showToastNotification('Course deleted successfully!');
 			} catch (error) {
 				console.error('Error deleting course:', error);
-				alert('Failed to delete course. Please try again.');
+				errorMessage = error.message || 'Failed to delete course. Please try again.';
+				showErrorModal = true;
 			} finally {
 				isLoading = false;
 			}
@@ -465,6 +521,87 @@
 					>
 						Delete
 					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Error Modal -->
+	{#if showErrorModal}
+		<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+			<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+				<div class="mb-4 flex items-center">
+					<div class="mr-3 flex-shrink-0 rounded-full bg-red-100 p-2">
+						<svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+							/>
+						</svg>
+					</div>
+					<h3 class="text-lg font-medium text-gray-900">Error</h3>
+				</div>
+
+				<p class="mb-5 text-sm text-gray-500">{errorMessage}</p>
+
+				<div class="flex justify-end">
+					<button
+						type="button"
+						class="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+						on:click={closeErrorModal}
+					>
+						Close
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Toast Notification -->
+	{#if showToast}
+		<div
+			class="fixed right-4 bottom-4 z-50 transform transition-all duration-300"
+			class:translate-y-0={showToast}
+			class:translate-y-24={!showToast}
+		>
+			<div
+				class="max-w-sm rounded-md px-4 py-3 shadow-lg"
+				class:bg-green-800={toastType === 'success'}
+				class:bg-red-800={toastType === 'error'}
+			>
+				<div class="flex items-center">
+					{#if toastType === 'success'}
+						<svg
+							class="mr-2 h-6 w-6 text-white"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M5 13l4 4L19 7"
+							></path>
+						</svg>
+					{:else}
+						<svg
+							class="mr-2 h-6 w-6 text-white"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							></path>
+						</svg>
+					{/if}
+					<p class="text-white">{toastMessage}</p>
 				</div>
 			</div>
 		</div>
